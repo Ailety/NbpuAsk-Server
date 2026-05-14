@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.Ailety.NbpuAsk.dao.ConversationShareDao">
+
+    <resultMap id="ConversationShareMap" type="me.Ailety.NbpuAsk.model.ConversationShare">
+        <id column="share_id" property="shareId" />
+        <result column="conversation_id" property="conversationId" />
+        <result column="owner_user_id" property="ownerUserId" />
+        <result column="share_created_time" property="shareCreatedTime" />
+        <result column="share_available" property="shareAvailable" />
+        <result column="visit_count" property="visitCount" />
+        <result column="last_visited_time" property="lastVisitedTime" />
+    </resultMap>
+
+    <select id="getActiveShareByConversationId" resultMap="ConversationShareMap">
+        SELECT *
+        FROM nbpuask.conversation_shares
+        WHERE conversation_id=#{conversationId}
+          AND owner_user_id=#{ownerUserId}
+          AND share_available=TRUE
+        LIMIT 1
+    </select>
+
+    <select id="getActiveShareByShareId" resultMap="ConversationShareMap">
+        SELECT *
+        FROM nbpuask.conversation_shares
+        WHERE share_id=#{shareId}
+          AND share_available=TRUE
+        LIMIT 1
+    </select>
+
+    <select id="getActiveSharesByOwnerUserId" resultMap="ConversationShareMap">
+        SELECT *
+        FROM nbpuask.conversation_shares
+        WHERE owner_user_id=#{ownerUserId}
+          AND share_available=TRUE
+        ORDER BY CAST(share_created_time AS UNSIGNED) DESC
+    </select>
+
+    <insert id="upsertShare" parameterType="me.Ailety.NbpuAsk.model.ConversationShare">
+        INSERT INTO nbpuask.conversation_shares(
+            share_id,
+            conversation_id,
+            owner_user_id,
+            share_created_time,
+            share_available,
+            visit_count,
+            last_visited_time
+        ) VALUES (
+            #{shareId},
+            #{conversationId},
+            #{ownerUserId},
+            #{shareCreatedTime},
+            TRUE,
+            0,
+            NULL
+        )
+        ON DUPLICATE KEY UPDATE
+            share_id=VALUES(share_id),
+            owner_user_id=VALUES(owner_user_id),
+            share_created_time=VALUES(share_created_time),
+            share_available=TRUE,
+            visit_count=0,
+            last_visited_time=NULL
+    </insert>
+
+    <update id="cancelShare">
+        UPDATE nbpuask.conversation_shares
+        SET share_available=FALSE
+        WHERE conversation_id=#{conversationId}
+          AND owner_user_id=#{ownerUserId}
+    </update>
+
+    <delete id="deleteSharesByConversation">
+        DELETE FROM nbpuask.conversation_shares
+        WHERE conversation_id=#{conversationId}
+          AND owner_user_id=#{ownerUserId}
+    </delete>
+
+    <delete id="deleteSharesByOwnerUserId">
+        DELETE FROM nbpuask.conversation_shares
+        WHERE owner_user_id=#{ownerUserId}
+    </delete>
+
+    <update id="incrementVisitCount">
+        UPDATE nbpuask.conversation_shares
+        SET visit_count=visit_count + 1,
+            last_visited_time=#{lastVisitedTime}
+        WHERE share_id=#{shareId}
+          AND share_available=TRUE
+    </update>
+
+</mapper>

@@ -1,0 +1,43 @@
+package team.ai3233.nbptask.interceptor;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.HandlerInterceptor;
+import me.Ailety.NbptAsk.util.JWTUtil;
+import me.Ailety.NbptAsk.util.Result;
+import me.Ailety.NbptAsk.util.ResultCodeEnum;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@Component
+public class LoginProtectInterceptor implements HandlerInterceptor {
+
+    @Autowired
+    JWTUtil jwtUtil;
+
+    @Override
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response, Object handler) throws Exception {
+
+        // 从请求头中获取token
+        String token = request.getHeader("token");
+
+        // 判断token为空 或者 token过期 进行拦截并返回对应的json给前端
+        if (StringUtils.isEmpty(token) || jwtUtil.verifyToken()) {
+            Result<?> result = Result.failure(ResultCodeEnum.TOKEN_VERIFY_FAIL);
+            // 将java对象转换成json数据格式
+            ObjectMapper objectMapper = new ObjectMapper();
+            String json = objectMapper.writeValueAsString(result);
+            // json返回给前端
+            response.getWriter().print(json);
+            // 拦截
+            return false;
+        }
+
+        // 放行
+        return true;
+    }
+}

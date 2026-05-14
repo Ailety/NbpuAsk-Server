@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.Ailety.NbpuAsk.dao.ConversationDao">
+
+    <resultMap id="ConversationMap" type="me.Ailety.NbpuAsk.model.Conversation">
+        <result column="conversation_data" property="conversationData" jdbcType="OTHER" typeHandler="me.Ailety.NbpuAsk.handler.JsonTypeHandler" />
+    </resultMap>
+
+    <insert id="createConversation" parameterType="me.Ailety.NbpuAsk.model.Conversation" keyProperty="conversation_id">
+        INSERT INTO nbpuask.conversations(conversation_id, conversation_user_id, conversation_available, conversation_data) VALUES
+            (#{conversationId}, #{conversationUserId}, #{conversationAvailable}, #{conversationData, jdbcType=OTHER, typeHandler=me.Ailety.NbpuAsk.handler.JsonTypeHandler})
+    </insert>
+
+    <select id="getConversation" parameterType="me.Ailety.NbpuAsk.model.Conversation" resultType="me.Ailety.NbpuAsk.model.Conversation" resultMap="ConversationMap">
+        SELECT * FROM nbpuask.conversations WHERE conversation_id=#{conversationId} AND conversation_user_id=#{conversationUserId}
+    </select>
+
+    <select id="getConversations" parameterType="java.lang.Long" resultType="me.Ailety.NbpuAsk.model.Conversation" resultMap="ConversationMap">
+        SELECT * FROM nbpuask.conversations WHERE conversation_user_id=#{conversationUserId} AND conversation_available=TRUE
+    </select>
+
+    <update id="setConversation" parameterType="me.Ailety.NbpuAsk.model.Conversation">
+        UPDATE nbpuask.conversations
+        SET conversation_id=#{conversationId}, conversation_user_id=#{conversationUserId}, conversation_available=#{conversationAvailable},
+            conversation_data=#{conversationData, jdbcType=OTHER, typeHandler=me.Ailety.NbpuAsk.handler.JsonTypeHandler}
+            WHERE conversation_id=#{conversationId} AND conversation_user_id=#{conversationUserId}
+    </update>
+
+    <delete id="deleteConversation" parameterType="me.Ailety.NbpuAsk.model.Conversation">
+        DELETE FROM nbpuask.conversations WHERE conversation_id=#{conversationId} and conversation_user_id=#{conversationUserId}
+    </delete>
+
+    <delete id="deleteConversations" parameterType="java.lang.Long">
+        DELETE FROM nbpuask.conversations WHERE conversation_user_id=#{conversationUserId}
+    </delete>
+
+
+</mapper>

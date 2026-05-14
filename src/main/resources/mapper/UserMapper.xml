@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.Ailety.NbpuAsk.dao.UserDao">
+
+    <resultMap id="UserMap" type="me.Ailety.NbpuAsk.model.User">
+        <result column="user_data" property="userData" jdbcType="OTHER" typeHandler="me.Ailety.NbpuAsk.handler.JsonTypeHandler" />
+    </resultMap>
+
+    <insert id="register" parameterType="me.Ailety.NbpuAsk.model.User" useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO nbpuask.users(user_id, username, password, user_data) VALUES
+            (#{userId}, #{username}, #{password}, #{userData, jdbcType=OTHER, typeHandler=me.Ailety.NbpuAsk.handler.JsonTypeHandler})
+    </insert>
+
+    <select id="findByUsername" parameterType="java.lang.String" resultType="me.Ailety.NbpuAsk.model.User" resultMap="UserMap">
+        SELECT * FROM nbpuask.users WHERE username=#{username}
+    </select>
+
+    <select id="findByUserId" parameterType="java.lang.Long" resultType="me.Ailety.NbpuAsk.model.User" resultMap="UserMap">
+        SELECT * FROM nbpuask.users WHERE user_id=#{userId}
+    </select>
+
+    <select id="login" resultType="me.Ailety.NbpuAsk.model.User" parameterType="java.lang.String" resultMap="UserMap">
+        SELECT * FROM nbpuask.users WHERE username=#{username} AND password=#{password}
+    </select>
+
+    <update id="setUserData" parameterType="me.Ailety.NbpuAsk.model.User">
+        UPDATE nbpuask.users
+        SET user_data=#{userData, jdbcType=OTHER, typeHandler=me.Ailety.NbpuAsk.handler.JsonTypeHandler}
+        WHERE user_id=#{userId} AND username=#{username}
+    </update>
+
+</mapper>
