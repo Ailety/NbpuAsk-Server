@@ -1,0 +1,56 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: 'NbpuAsk'
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DS_URL}
+    username: ${DS_USERNAME}
+    password: ${DS_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 50
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 540000
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true # 全局配置驼峰映射
+  mapper-locations: classpath:/mapper/*
+  type-aliases-package: me.Ailety.NbpuAsk.model
+  type-handlers-package: me.Ailety.NbpuAsk.handler.JsonTypeHandler
+
+model:
+  app-id: ${MODEL_APP_ID}
+
+jwt:
+  issuer: "nbpuask"
+  secret-key: ${JWT_SECRET_KEY} # 密钥
+  expired-time: 1440 # token有效时间 (分钟) 即一天
+
+security:
+  aes-secret-key: ${SECURITY_AES_SECRET_KEY} # 密钥
+
+knife4j:
+  enable: false
+  openapi:
+    title: Knife4j官方文档
+    description: "`我是测试`,**你知道吗**
+    # aaa"
+    email: xiaoymin@foxmail.com
+    concat: 八一菜刀
+    url: https://docs.xiaominfo.com
+    version: v4.0
+    license: Apache 2.0
+    license-url: https://stackoverflow.com/
+    terms-of-service-url: https://stackoverflow.com/
+    group:
+      test1:
+        group-name: 分组名称
+        api-rule: package
+        api-rule-resources:
+          - com.knife4j.demo.new3
