@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="DataSourcePerFileMappings">
-    <file url="file://$PROJECT_DIR$/src/main/resources/mapper/ConversationShareMapper.xml" value="842eed78-97d0-45ce-b0b4-a4e8dc57bdf5" />
-  </component>
-</project>
