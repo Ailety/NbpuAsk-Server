@@ -7,11 +7,13 @@ import io.reactivex.Flowable;
 import lombok.extern.slf4j.Slf4j;
 import me.Ailety.NbpuAsk.dao.ConversationDao;
 import me.Ailety.NbpuAsk.model.Conversation;
+import me.Ailety.NbpuAsk.model.ConversationTitleStatus;
 import me.Ailety.NbpuAsk.model.Message;
 import me.Ailety.NbpuAsk.model.ModelRequest;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.SignalType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,11 +24,14 @@ import java.util.List;
 public class ConversationRunService {
 
     private final ConversationDao conversationDao;
+    private final ConversationTitleService conversationTitleService;
 
     private String appId;
 
-    public ConversationRunService(ConversationDao conversationDao) {
+    public ConversationRunService(ConversationDao conversationDao,
+                                  ConversationTitleService conversationTitleService) {
         this.conversationDao = conversationDao;
+        this.conversationTitleService = conversationTitleService;
     }
 
     public void setAppId(String appId) {
@@ -36,23 +41,32 @@ public class ConversationRunService {
     public Flux<String> run(ModelRequest modelRequest) {
         Conversation conversation = null;
         Message pendingModelMessage = null;
+        boolean shouldAutoGenerateTitle = false;
         long thinkingStartTime = System.currentTimeMillis();
 
         if (modelRequest.getUserId() != null && modelRequest.getConversation_id() != null) {
             conversation = conversationDao.getConversation(modelRequest.getUserId(), modelRequest.getConversation_id());
             if (conversation != null) {
+                shouldAutoGenerateTitle = shouldAutoGenerateTitle(conversation);
                 pendingModelMessage = appendPendingMessages(conversation, modelRequest.getQuery(), thinkingStartTime);
                 if (pendingModelMessage == null) {
                     return Flux.error(new IllegalStateException("当前对话仍有未完成的模型响应，请等待其完成后再发送新问题"));
                 }
 
+                if (shouldAutoGenerateTitle) {
+                    conversation.getConversationData().setTitleStatus(ConversationTitleStatus.GENERATING);
+                }
                 conversationDao.setConversation(conversation);
             }
         }
 
         final Conversation finalConversation = conversation;
         final Message finalPendingModelMessage = pendingModelMessage;
+        final boolean finalShouldAutoGenerateTitle = shouldAutoGenerateTitle;
         final long finalThinkingStartTime = thinkingStartTime;
+        final Long finalUserId = modelRequest.getUserId();
+        final String finalConversationId = modelRequest.getConversation_id();
+        final String finalQuery = modelRequest.getQuery();
         StringBuilder modelResponseBuilder = new StringBuilder();
 
         ApplicationParam param = ApplicationParam.builder()
@@ -72,7 +86,12 @@ public class ConversationRunService {
                             finalConversation,
                             finalPendingModelMessage,
                             finalThinkingStartTime,
-                            modelResponseBuilder.toString()
+                            modelResponseBuilder.toString(),
+                            finalShouldAutoGenerateTitle,
+                            signalType == SignalType.ON_COMPLETE,
+                            finalUserId,
+                            finalConversationId,
+                            finalQuery
                     ))
                     .doOnError(e -> log.error("❌ [异常] 百炼大模型流式调用出错: {}", e.getMessage()));
         } catch (Exception e) {
@@ -120,7 +139,12 @@ public class ConversationRunService {
     private void completePendingMessage(Conversation conversation,
                                         Message pendingModelMessage,
                                         long thinkingStartTime,
-                                        String fullResponse) {
+                                        String fullResponse,
+                                        boolean shouldAutoGenerateTitle,
+                                        boolean modelRunCompleted,
+                                        Long userId,
+                                        String conversationId,
+                                        String query) {
         if (conversation == null || pendingModelMessage == null) {
             return;
         }
@@ -133,12 +157,41 @@ public class ConversationRunService {
         pendingModelMessage.setThinkingFinishedTime(thinkingFinishedTime);
         pendingModelMessage.setThinkingDurationSeconds(durationSeconds);
         conversation.getConversationData().setTimestamp(String.valueOf(thinkingFinishedTime));
+        preserveLatestTitleState(conversation, userId, conversationId);
         conversationDao.setConversation(conversation);
+
+        if (shouldAutoGenerateTitle && modelRunCompleted) {
+            conversationTitleService.generateTitleAfterFirstResponseAsync(
+                    userId,
+                    conversationId,
+                    query,
+                    pendingModelMessage.getMessage()
+            );
+        } else if (shouldAutoGenerateTitle) {
+            conversationTitleService.markTitleFailedIfStillGenerating(userId, conversationId);
+        }
     }
 
     private String normalizeMarkdown(String content) {
         String normalizedContent = content.replaceAll("\\^\\[(\\d+)\\]\\^", "<sup class=\"footnote-ref\">[$1]</sup>");
         return normalizedContent.replaceAll("\\*\\*\\s+([^*]+?)\\s+\\*\\*", "**$1**");
+    }
+
+    private void preserveLatestTitleState(Conversation conversation, Long userId, String conversationId) {
+        if (conversation == null
+                || conversation.getConversationData() == null
+                || userId == null
+                || conversationId == null) {
+            return;
+        }
+
+        Conversation latestConversation = conversationDao.getConversation(userId, conversationId);
+        if (latestConversation == null || latestConversation.getConversationData() == null) {
+            return;
+        }
+
+        conversation.getConversationData().setTitle(latestConversation.getConversationData().getTitle());
+        conversation.getConversationData().setTitleStatus(latestConversation.getConversationData().getTitleStatus());
     }
 
     private boolean hasPendingModelMessage(List<Message> messages) {
@@ -157,5 +210,17 @@ public class ConversationRunService {
         }
 
         return false;
+    }
+
+    private boolean shouldAutoGenerateTitle(Conversation conversation) {
+        if (conversation == null || conversation.getConversationData() == null) {
+            return false;
+        }
+
+        List<Message> messages = conversation.getConversationData().getMessages();
+        return (messages == null || messages.isEmpty())
+                && conversationTitleService.isDefaultTitleStatus(
+                conversation.getConversationData().getTitleStatus()
+        );
     }
 }

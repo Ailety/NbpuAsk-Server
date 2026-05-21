@@ -5,11 +5,11 @@ spring:
   application:
     name: 'NbpuAsk'
   config:
-    import: optional:file:.env[.properties]
+    import: "optional:file:.env[.properties]"
   datasource:
-    url: ${DS_URL}
-    username: ${DS_USERNAME}
-    password: ${DS_PASSWORD}
+    url: "${DS_URL}"
+    username: "${DS_USERNAME}"
+    password: "${DS_PASSWORD}"
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 50
@@ -25,15 +25,15 @@ mybatis:
   type-handlers-package: me.Ailety.NbpuAsk.handler.JsonTypeHandler
 
 model:
-  app-id: ${MODEL_APP_ID}
+  app-id: "${MODEL_APP_ID}"
 
 jwt:
   issuer: "nbpuask"
-  secret-key: ${JWT_SECRET_KEY} # 密钥
+  secret-key: "${JWT_SECRET_KEY}" # 密钥
   expired-time: 1440 # token有效时间 (分钟) 即一天
 
 security:
-  aes-secret-key: ${SECURITY_AES_SECRET_KEY} # 密钥
+  aes-secret-key: "${SECURITY_AES_SECRET_KEY}" # 密钥
 
 knife4j:
   enable: false

@@ -30,7 +30,10 @@ public enum ResultCodeEnum {
     CONV_CREATE_EXCEPTION(1300, "对话新建异常"),
     CONV_GET_EXCEPTION(1301, "对话获取异常"),
     CONV_SET_EXCEPTION(1302, "对话设置异常"),
-    CONV_DELETE_EXCEPTION(1303, "对话删除异常");
+    CONV_DELETE_EXCEPTION(1303, "对话删除异常"),
+    CONV_NOT_FOUND(1304, "对话不存在"),
+    CONV_RUN_EXCEPTION(1305, "对话响应异常"),
+    CONV_PENDING_RESPONSE(1306, "当前对话仍有未完成的模型响应");
 
     /**
      * 响应状态码

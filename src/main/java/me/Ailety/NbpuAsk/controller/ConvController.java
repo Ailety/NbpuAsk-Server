@@ -68,7 +68,7 @@ public class ConvController {
             return Result.failure(ResultCodeEnum.CONV_GET_EXCEPTION);
         }
 
-        return Result.failure(ResultCodeEnum.CONV_GET_EXCEPTION);
+        return Result.failure(ResultCodeEnum.CONV_NOT_FOUND);
 
     }
 
@@ -87,7 +87,7 @@ public class ConvController {
             return Result.failure(ResultCodeEnum.CONV_GET_EXCEPTION);
         }
 
-        return Result.failure(ResultCodeEnum.CONV_GET_EXCEPTION);
+        return Result.failure(ResultCodeEnum.CONV_NOT_FOUND);
     }
 
     @PostMapping(value = "/share")
@@ -116,7 +116,7 @@ public class ConvController {
             return Result.failure(ResultCodeEnum.CONV_SET_EXCEPTION);
         }
 
-        return Result.failure(ResultCodeEnum.CONV_SET_EXCEPTION);
+        return Result.failure(ResultCodeEnum.CONV_NOT_FOUND);
     }
 
     @PostMapping(value = "/share/cancel")
@@ -286,7 +286,8 @@ public class ConvController {
                 error -> {
                     if (!clientDisconnected.get()) {
                         try {
-                            emitter.completeWithError(error);
+                            sendStreamError(emitter, error);
+                            emitter.complete();
                         } catch (Exception ignored) {}
                     }
                 },
@@ -301,6 +302,17 @@ public class ConvController {
 
         // 立即返回 emitter 对象给 Tomcat，保持连接通道敞开
         return emitter;
+    }
+
+    private void sendStreamError(SseEmitter emitter, Throwable error) throws IOException {
+        ResultCodeEnum resultCode = error instanceof IllegalStateException
+                ? ResultCodeEnum.CONV_PENDING_RESPONSE
+                : ResultCodeEnum.CONV_RUN_EXCEPTION;
+        Map<String, Object> data = new HashMap<>();
+        data.put("error", true);
+        data.put("code", resultCode.getCode());
+        data.put("message", error.getMessage() == null ? resultCode.getMessage() : error.getMessage());
+        emitter.send(SseEmitter.event().name("error").data(data));
     }
 
 }

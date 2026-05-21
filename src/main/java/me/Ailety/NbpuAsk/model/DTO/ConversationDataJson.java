@@ -9,6 +9,7 @@ import java.util.List;
 public class ConversationDataJson {
 
     private String title;
+    private String titleStatus;
     private String createdTime;
     private String timestamp;
     private List<Message> messages;
@@ -17,6 +18,14 @@ public class ConversationDataJson {
 
     public ConversationDataJson(String title, String createdTime, String timestamp, List<Message> messages) {
         this.title = title;
+        this.createdTime = createdTime;
+        this.timestamp = timestamp;
+        this.messages = messages;
+    }
+
+    public ConversationDataJson(String title, String titleStatus, String createdTime, String timestamp, List<Message> messages) {
+        this.title = title;
+        this.titleStatus = titleStatus;
         this.createdTime = createdTime;
         this.timestamp = timestamp;
         this.messages = messages;
